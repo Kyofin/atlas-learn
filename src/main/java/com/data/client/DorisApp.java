@@ -28,17 +28,27 @@ import java.util.List;
  **/
 public class DorisApp {
 	public static final String ENTITY_TYPE_DATASET = "DataSet";
-	public static final String DORIS_TABLE_TYPE_V_2 = "Doris_tableType_V2";
+
+	public static final String ENUM_DEF_DORIS_TABLE_TYPE = "Doris_tableType_V2";
 	public static final String ENTITY_DEF_DORIS_DB = "Doris_db_v2";
 	public static final String ENTITY_DEF_DORIS_TABLE = "Doris_table_v2";
 	public static final String ENTITY_DEF_DORIS_COLUMN = "Doris_column_v2";
 	public static final String RELAT_DEF_DORIS_DB_TABLES = "Doris_db_tables_v2";
+	public static final String RELAT_DEF_DORIS_TB_COLUMNS = "Doris_tb_columns_v2";
 
 	public static void main(String[] args) throws AtlasServiceException {
 		String[] atlasServerUrls = new String[]{"http://10.211.55.8:21000/"};
 		String[] basicAuthUsernamePassword = new String[]{"admin", "admin"};
 		AtlasClientV2 atlasClientV2 = new AtlasClientV2(atlasServerUrls, basicAuthUsernamePassword);
-		createTypes(atlasClientV2);
+		//createTypes(atlasClientV2);
+		deleteTypes(Lists.newArrayList(
+				RELAT_DEF_DORIS_DB_TABLES,
+				RELAT_DEF_DORIS_TB_COLUMNS,
+				ENTITY_DEF_DORIS_DB,
+				ENTITY_DEF_DORIS_TABLE,
+				ENTITY_DEF_DORIS_COLUMN,
+				ENUM_DEF_DORIS_TABLE_TYPE
+				),atlasClientV2);
 	}
 
 	private static void createTypes(AtlasClientV2 atlasClientV2) throws AtlasServiceException {
@@ -49,7 +59,7 @@ public class DorisApp {
 				AtlasTypeUtil.createOptionalAttrDef("size", "long"),
 				AtlasTypeUtil.createOptionalAttrDef("replicaCount", "int"),
 				AtlasTypeUtil.createOptionalAttrDef("create_time", "date"),
-				AtlasTypeUtil.createOptionalAttrDef("modelType", DORIS_TABLE_TYPE_V_2),
+				AtlasTypeUtil.createOptionalAttrDef("modelType", ENUM_DEF_DORIS_TABLE_TYPE),
 				AtlasTypeUtil.createOptionalAttrDef("DUPLICATE_KEY", "string"),
 				AtlasTypeUtil.createOptionalAttrDef("AGGREGATE_KEY", "string"),
 				AtlasTypeUtil.createOptionalAttrDef("UNIQUE_KEY", "string"),
@@ -64,7 +74,7 @@ public class DorisApp {
 				AtlasTypeUtil.createOptionalAttrDef("dataType", "string"),
 				AtlasTypeUtil.createOptionalAttrDef("comment", "string")
 		);
-		final AtlasEnumDef dorisTableTypeEnumDef = new AtlasEnumDef(DORIS_TABLE_TYPE_V_2, null,
+		final AtlasEnumDef dorisTableTypeEnumDef = new AtlasEnumDef(ENUM_DEF_DORIS_TABLE_TYPE, null,
 				Arrays.asList(
 						new AtlasEnumDef.AtlasEnumElementDef("Duplicate", null, 1),
 						new AtlasEnumDef.AtlasEnumElementDef("Unique", null, 2),
@@ -77,7 +87,7 @@ public class DorisApp {
 				new AtlasRelationshipEndDef(ENTITY_DEF_DORIS_TABLE, "db", AtlasStructDef.AtlasAttributeDef.Cardinality.SINGLE, false),
 				AtlasTypeUtil.createRelationshipEndDef(ENTITY_DEF_DORIS_DB, "tables", AtlasStructDef.AtlasAttributeDef.Cardinality.SET, true));
 
-		final AtlasRelationshipDef tableColumnsDef = new AtlasRelationshipDef("Doris_tb_columns_v2", null, "1.0",
+		final AtlasRelationshipDef tableColumnsDef = new AtlasRelationshipDef(RELAT_DEF_DORIS_TB_COLUMNS, null, "1.0",
 				AtlasRelationshipDef.RelationshipCategory.COMPOSITION, AtlasRelationshipDef.PropagateTags.NONE,
 				new AtlasRelationshipEndDef(ENTITY_DEF_DORIS_TABLE, "columns", AtlasStructDef.AtlasAttributeDef.Cardinality.SET, true),
 				AtlasTypeUtil.createRelationshipEndDef(ENTITY_DEF_DORIS_COLUMN, "table", AtlasStructDef.AtlasAttributeDef.Cardinality.SINGLE, false));
@@ -147,4 +157,14 @@ public class DorisApp {
 		return client.createAtlasTypeDefs(typesToCreate);
 	}
 
+	private static void deleteTypes(List<String> typeNames, AtlasClientV2 client) throws AtlasServiceException {
+		for (String typeName : typeNames) {
+			if (!client.typeWithNameExists(typeName)) {
+				DorisApp.log(typeName + ": type no exists. Skipping delete");
+			}else{
+				client.deleteTypeByName(typeName);
+			}
+		}
+
+	}
 }
