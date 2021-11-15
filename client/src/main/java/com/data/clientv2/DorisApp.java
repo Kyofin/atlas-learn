@@ -1,4 +1,4 @@
-package com.data.client;
+package com.data.clientv2;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
