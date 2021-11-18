@@ -35,6 +35,8 @@ import static org.apache.atlas.type.AtlasTypeUtil.toAtlasRelatedObjectIds;
  **/
 public class DorisApp {
 	public static final String ENTITY_TYPE_DATASET = "DataSet";
+	public static final String ENTITY_TYPE_PROCESS = "Process";
+
 
 	public static final String ENUM_DEF_DORIS_TABLE_TYPE = "Doris_tableType_V2";
 	public static final String ENTITY_DEF_DORIS_DB = "Doris_db_v2";
@@ -43,6 +45,8 @@ public class DorisApp {
 	public static final String RELAT_DEF_DORIS_DB_TABLES = "Doris_db_tables_v2";
 	public static final String RELAT_DEF_DORIS_TB_COLUMNS = "Doris_tb_columns_v2";
 	public static final String METADATA_NAMESPACE_SUFFIX = "@proCluster";
+	public static final String ATTR_START_TIME = "start_time";
+	public static final String ATTR_INPUTS = "inputs";
 
 
 	private static final String ATTR_QUALIFIED_NAME          = "qualifiedName";
@@ -66,12 +70,18 @@ public class DorisApp {
 	public static final String ATTR_TABLE = "table";
 	public static final String ATTR_DATA_TYPE = "dataType";
 	public static final String ATTR_IS_NULL = "isNull";
+	public static final String ATTR_USERNAME = "user_name";
+	public static final String ATTR_END_TIME = "end_time";
+	public static final String ATTR_SQL_CONTENT = "sqlContent";
+	public static final String ATTR_SQL_EXPLAIN = "sqlExplain";
+	public static final String ENTITY_TYPE_DORIS_SQL = "Doris_SQL";
+	public static final String ATTR_OUTPUTS = "outputs";
 
 	public static void main(String[] args) throws Exception {
 		String[] atlasServerUrls = new String[]{"http://localhost:21000/"};
 		String[] basicAuthUsernamePassword = new String[]{"admin", "admin"};
 		AtlasClientV2 atlasClientV2 = new AtlasClientV2(atlasServerUrls, basicAuthUsernamePassword);
-		createTypes(atlasClientV2);
+		//createTypes(atlasClientV2);
 		//deleteTypes(Lists.newArrayList(
 		//		RELAT_DEF_DORIS_DB_TABLES,
 		//		RELAT_DEF_DORIS_TB_COLUMNS,
@@ -81,8 +91,8 @@ public class DorisApp {
 		//		ENUM_DEF_DORIS_TABLE_TYPE
 		//		),atlasClientV2);
 
-		deleteEntities(atlasClientV2);
-		//createDorisEntity(atlasClientV2);
+		//deleteEntities(atlasClientV2);
+		createDorisEntity(atlasClientV2);
 	}
 
 	public static void deleteEntities(AtlasClientV2 atlasClientV2) throws Exception {
@@ -90,7 +100,8 @@ public class DorisApp {
 		//
 		//SampleApp.log("Deleted entity: guid=" + loadProcess.getGuid());
 
-		List<String> entityGuids = Arrays.asList("5b7baac5-a67d-4ad6-819c-b475f9804e44","8896008f-5442-4764-a751-0bc90cf659ad");
+		List<String> entityGuids = Arrays.asList("0c55a238-6eaa-4c51-8245-45707649082d","65224492-9832-4525-944a-434e132d0aad",
+				"c9640438-7578-452a-9ad8-b85ceb17b9d3","fb1d93ed-14b7-4e0f-9751-adb72b7745dd");
 
 		atlasClientV2.deleteEntitiesByGuids(entityGuids);
 
@@ -112,23 +123,23 @@ public class DorisApp {
 		dbEntity.setGuid(dbEntityResp.getGuid());
 		DorisApp.log("Created entity: typeName=" + dbEntityResp.getTypeName() + ", qualifiedName=" + dbEntityResp.getAttribute(ATTR_QUALIFIED_NAME) + ", guid=" + dbEntityResp.getGuid());
 
-		// 建表
-		AtlasEntity table1Entity = new AtlasEntity(ENTITY_DEF_DORIS_TABLE);
+		// 建表1
+		AtlasEntity inpuTbEntity = new AtlasEntity(ENTITY_DEF_DORIS_TABLE);
 		final String table1Name = "maoming_info";
-		table1Entity.setAttribute(ATTR_NAME, table1Name);
-		table1Entity.setAttribute(ATTR_DESCRIPTION, "疫苗基础表");
-		table1Entity.setAttribute(ATTR_QUALIFIED_NAME, dbEntity.getAttribute(ATTR_NAME) + "." + table1Name + METADATA_NAMESPACE_SUFFIX);
-		table1Entity.setAttribute(ATTR_MODEL_TYPE, DUPLICATE_TABLE_TYPE);
-		table1Entity.setAttribute(ATTR_SIZE, "11152956325");
-		table1Entity.setAttribute(ATTR_REPLICA_COUNT, "288");
-		table1Entity.setAttribute(ATTR_CREATE_TIME, "1637069312603");
-		table1Entity.setAttribute(ATTR_MODEL_TYPE, DUPLICATE_TABLE_TYPE);
-		table1Entity.setAttribute(ATTR_DUPLICATE_KEY, "person_name");
-		table1Entity.setAttribute(ATTR_ENGINE, "OLAP");
-		table1Entity.setAttribute(ATTR_COMMENT, "疫苗基础表");
+		inpuTbEntity.setAttribute(ATTR_NAME, table1Name);
+		inpuTbEntity.setAttribute(ATTR_DESCRIPTION, "疫苗基础表");
+		inpuTbEntity.setAttribute(ATTR_QUALIFIED_NAME, dbEntity.getAttribute(ATTR_NAME) + "." + table1Name + METADATA_NAMESPACE_SUFFIX);
+		inpuTbEntity.setAttribute(ATTR_MODEL_TYPE, DUPLICATE_TABLE_TYPE);
+		inpuTbEntity.setAttribute(ATTR_SIZE, "11152956325");
+		inpuTbEntity.setAttribute(ATTR_REPLICA_COUNT, "288");
+		inpuTbEntity.setAttribute(ATTR_CREATE_TIME, "1637069312603");
+		inpuTbEntity.setAttribute(ATTR_MODEL_TYPE, DUPLICATE_TABLE_TYPE);
+		inpuTbEntity.setAttribute(ATTR_DUPLICATE_KEY, "person_name");
+		inpuTbEntity.setAttribute(ATTR_ENGINE, "OLAP");
+		inpuTbEntity.setAttribute(ATTR_COMMENT, "疫苗基础表");
 		// 关联库
 		final AtlasRelatedObjectId dbAtlasRelatedObjectId = AtlasTypeUtil.getAtlasRelatedObjectId(AtlasTypeUtil.getObjectId(dbEntity), RELAT_DEF_DORIS_DB_TABLES);
-		table1Entity.setRelationshipAttribute(ATTR_DB, dbAtlasRelatedObjectId);
+		inpuTbEntity.setRelationshipAttribute(ATTR_DB, dbAtlasRelatedObjectId);
 
 		// 建字段
 		final List<AtlasEntity> columnEntities = Arrays.asList(
@@ -149,16 +160,81 @@ public class DorisApp {
 				createColumn("id","varchar(254)","",true)
 		);
 		// 关联字段
-		table1Entity.setRelationshipAttribute(ATTR_COLUMNS, toAtlasRelatedObjectIds(columnEntities));
+		inpuTbEntity.setRelationshipAttribute(ATTR_COLUMNS, toAtlasRelatedObjectIds(columnEntities));
 
 		AtlasEntity.AtlasEntityWithExtInfo table1EntityWithExtInfo = new AtlasEntity.AtlasEntityWithExtInfo();
-		table1EntityWithExtInfo.setEntity(table1Entity);
+		table1EntityWithExtInfo.setEntity(inpuTbEntity);
 		for (AtlasEntity column : columnEntities) {
-			column.setRelationshipAttribute(ATTR_TABLE, toAtlasRelatedObjectId(table1Entity));
+			column.setRelationshipAttribute(ATTR_TABLE, toAtlasRelatedObjectId(inpuTbEntity));
+			// 绑定字段和表的级联关系（建表时，会一起建字段 。表删除时，会把字段也删了）
 			table1EntityWithExtInfo.addReferredEntity(column);
 		}
-		AtlasEntityHeader createdHeader = createEntity(atlasClientV2,table1EntityWithExtInfo);
-		DorisApp.log("Created entity: typeName=" + createdHeader.getTypeName() + ", qualifiedName=" + createdHeader.getAttribute(ATTR_QUALIFIED_NAME) + ", guid=" + createdHeader.getGuid());
+		AtlasEntityHeader inputTbEntityHeader = createEntity(atlasClientV2,table1EntityWithExtInfo);
+		DorisApp.log("Created entity: typeName=" + inputTbEntityHeader.getTypeName() + ", qualifiedName=" + inputTbEntityHeader.getAttribute(ATTR_QUALIFIED_NAME) + ", guid=" + inputTbEntityHeader.getGuid());
+		inpuTbEntity.setGuid(inputTbEntityHeader.getGuid());
+
+		// 建表2
+		AtlasEntity outputTbEntity = new AtlasEntity(ENTITY_DEF_DORIS_TABLE);
+		final String outputTbName = "maoming_person_count";
+		outputTbEntity.setAttribute(ATTR_NAME, outputTbName);
+		outputTbEntity.setAttribute(ATTR_DESCRIPTION, "疫苗人数统计表");
+		outputTbEntity.setAttribute(ATTR_QUALIFIED_NAME, dbEntity.getAttribute(ATTR_NAME) + "." + outputTbName + METADATA_NAMESPACE_SUFFIX);
+		outputTbEntity.setAttribute(ATTR_MODEL_TYPE, UNIQUE_TABLE_TYPE);
+		outputTbEntity.setAttribute(ATTR_SIZE, "458175");
+		outputTbEntity.setAttribute(ATTR_REPLICA_COUNT, "30");
+		outputTbEntity.setAttribute(ATTR_CREATE_TIME, "1637069312603");
+		outputTbEntity.setAttribute(ATTR_MODEL_TYPE, DUPLICATE_TABLE_TYPE);
+		outputTbEntity.setAttribute(ATTR_UNIQUE_KEY, "`admin_org`, `person_type`, `com_short_n`, `gender_code`");
+		outputTbEntity.setAttribute(ATTR_ENGINE, "OLAP");
+		outputTbEntity.setAttribute(ATTR_COMMENT, "疫苗人数统计表");
+		// 关联库
+		outputTbEntity.setRelationshipAttribute(ATTR_DB, dbAtlasRelatedObjectId);
+
+		// 建字段
+		final List<AtlasEntity> outputColumnEntities = Arrays.asList(
+				createColumn("admin_org","varchar(254)","",true),
+				createColumn("person_type","varchar(254)","",true),
+				createColumn("com_short_n","varchar(254)","",true),
+				createColumn("gender_code","varchar(254)","",true),
+				createColumn("person_count","int(11)","",true)
+		);
+		// 关联字段
+		outputTbEntity.setRelationshipAttribute(ATTR_COLUMNS, toAtlasRelatedObjectIds(outputColumnEntities));
+
+		AtlasEntity.AtlasEntityWithExtInfo ouputTbEntityWithExtInfo = new AtlasEntity.AtlasEntityWithExtInfo();
+		ouputTbEntityWithExtInfo.setEntity(outputTbEntity);
+		for (AtlasEntity column : outputColumnEntities) {
+			column.setRelationshipAttribute(ATTR_TABLE, toAtlasRelatedObjectId(outputTbEntity));
+			// 绑定字段和表的级联关系（建表时，会一起建字段 。表删除时，会把字段也删了）
+			ouputTbEntityWithExtInfo.addReferredEntity(column);
+		}
+		AtlasEntityHeader outputTbEntityHeader = createEntity(atlasClientV2,ouputTbEntityWithExtInfo);
+		DorisApp.log("Created entity: typeName=" + outputTbEntityHeader.getTypeName() + ", qualifiedName=" + outputTbEntityHeader.getAttribute(ATTR_QUALIFIED_NAME) + ", guid=" + outputTbEntityHeader.getGuid());
+		outputTbEntity.setGuid(outputTbEntityHeader.getGuid());
+
+
+
+		// 创建处理程序
+		AtlasEntity sqlEntity = new AtlasEntity(ENTITY_TYPE_DORIS_SQL);
+
+		final String name = "处理茂名疫苗数据";
+		sqlEntity.setAttribute(ATTR_NAME, name);
+		sqlEntity.setAttribute(ATTR_QUALIFIED_NAME, name + METADATA_NAMESPACE_SUFFIX);
+		sqlEntity.setAttribute(ATTR_DESCRIPTION, "ETL程序，每日处理疫苗接种数据");
+		sqlEntity.setAttribute(ATTR_USERNAME, "huzekang");
+		sqlEntity.setAttribute(ATTR_START_TIME, System.currentTimeMillis());
+		sqlEntity.setAttribute(ATTR_END_TIME, System.currentTimeMillis() + 10000);
+		sqlEntity.setAttribute(ATTR_SQL_CONTENT, "INSERT INTO maoming_person_count SELECT admin_org,person_type,com_short_n,gender_code,count(person_name) from maoming_info group by admin_org,person_type,com_short_n,gender_code");
+		sqlEntity.setAttribute(ATTR_SQL_EXPLAIN, QueryPlan.content);
+
+		// 关联输入和输出
+		sqlEntity.setRelationshipAttribute(ATTR_INPUTS, toAtlasRelatedObjectIds(Lists.newArrayList(inpuTbEntity)));
+		sqlEntity.setRelationshipAttribute(ATTR_OUTPUTS, toAtlasRelatedObjectIds(Lists.newArrayList(outputTbEntity)));
+		AtlasEntity.AtlasEntityWithExtInfo sqlEntityWithExtInfo = new AtlasEntity.AtlasEntityWithExtInfo();
+		sqlEntityWithExtInfo.setEntity(sqlEntity);
+		final AtlasEntityHeader sqlEntityHeader = createEntity(atlasClientV2, sqlEntityWithExtInfo);
+		DorisApp.log("Created entity: typeName=" + sqlEntityHeader.getTypeName() + ", qualifiedName=" + sqlEntityHeader.getAttribute(ATTR_QUALIFIED_NAME) + ", guid=" + sqlEntityHeader.getGuid());
+		outputTbEntity.setGuid(sqlEntityHeader.getGuid());
 
 
 
@@ -244,9 +320,19 @@ public class DorisApp {
 				AtlasRelationshipDef.RelationshipCategory.COMPOSITION, AtlasRelationshipDef.PropagateTags.NONE,
 				new AtlasRelationshipEndDef(ENTITY_DEF_DORIS_TABLE, ATTR_COLUMNS, AtlasStructDef.AtlasAttributeDef.Cardinality.SET, true),
 				AtlasTypeUtil.createRelationshipEndDef(ENTITY_DEF_DORIS_COLUMN, ATTR_TABLE, AtlasStructDef.AtlasAttributeDef.Cardinality.SINGLE, false));
+
+		// 定义doris sql程序
+		final AtlasEntityDef dorisSQLDef = AtlasTypeUtil.createClassTypeDef(ENTITY_TYPE_DORIS_SQL,
+				Collections.singleton(ENTITY_TYPE_PROCESS),
+				AtlasTypeUtil.createOptionalAttrDef(ATTR_USERNAME, "string"),
+				AtlasTypeUtil.createOptionalAttrDef(ATTR_START_TIME, "long"),
+				AtlasTypeUtil.createOptionalAttrDef(ATTR_END_TIME, "long"),
+				AtlasTypeUtil.createRequiredAttrDef(ATTR_SQL_CONTENT, "string"),
+				AtlasTypeUtil.createRequiredAttrDef(ATTR_SQL_EXPLAIN, "string"));
+
 		// 批量创建type
 		final AtlasTypesDef atlasTypesDef = new AtlasTypesDef(Lists.newArrayList(dorisTableTypeEnumDef), Lists.newArrayList(), Lists.newArrayList(),
-				Lists.newArrayList(dorisDbEntityDef, dorisTableEntityDef, dorisColumnEntityDef),
+				Lists.newArrayList(dorisDbEntityDef, dorisTableEntityDef, dorisColumnEntityDef,dorisSQLDef),
 				Lists.newArrayList(dbTablesDef, tableColumnsDef)
 		);
 		batchCreateTypes(atlasClientV2, atlasTypesDef);
