@@ -1,9 +1,5 @@
-# atlasClientV2示例
-
-## 适配版本
-atlas2.2.0
-
-## 实现功能
-1. 创建type
-
-2. 批量删除type
+Atlas 使用 Janusgraph作为存储，而Janusgraph实际底层存储可以是（es + berkeleyje）。
+Atlas 的里面保存的元数据可以通过AtlasClientV2进行上报和修改。
+本示例主要实现：
+1、上报数据给Atlas
+2、Janusgraph quickstart
